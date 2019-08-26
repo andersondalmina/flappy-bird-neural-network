@@ -2,39 +2,47 @@ package components
 
 import (
 	"math"
+	"time"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
 )
 
+// BirdHeight is the height of the bird sprite
 const BirdHeight = 46
-const BirdWidth = 54
-const gravity = 20.0
-const BirdX = WindowWidth/2 - WindowWidth*0.2
 
-var maxSpeed = gravity / 5
+// BirdWidth is the width of the bird sprite
+const BirdWidth = 54
+
+// BirdX is the inicial position X of the bird
+const BirdX = WindowWidth/2 - WindowWidth*0.2
+const gravity = 20.0
+
+var maxSpeed = gravity / 4
 
 // Bird component
 type Bird struct {
-	x      float64
-	y      float64
-	speed  float64
-	sprite *pixel.Sprite
-	points int64
-	death  bool
-	enable bool
+	x           float64
+	y           float64
+	speed       float64
+	sprite      *pixel.Sprite
+	points      int64
+	death       bool
+	enableGhost bool
+	ghost       bool
 }
 
 // NewBird creates a new bird component
 func NewBird(x float64, sprite *pixel.Sprite) *Bird {
 	return &Bird{
-		x:      x,
-		y:      WindowHeight / 2,
-		speed:  2,
-		sprite: sprite,
-		points: 0,
-		death:  false,
-		enable: true,
+		x:           x,
+		y:           WindowHeight / 2,
+		speed:       2,
+		sprite:      sprite,
+		points:      0,
+		death:       false,
+		enableGhost: true,
+		ghost:       false,
 	}
 }
 
@@ -50,10 +58,6 @@ func (b *Bird) GetPoints() int64 {
 	return b.points
 }
 
-func (b *Bird) Enable() {
-	b.enable = true
-}
-
 func (b *Bird) IsDeath() bool {
 	return b.death
 }
@@ -63,50 +67,33 @@ func (b *Bird) Death() {
 }
 
 func (b *Bird) Update() {
-	if b.death == true || b.enable == true {
-		if b.speed < maxSpeed {
-			b.speed += gravity * Delta
-		}
+	if b.speed < maxSpeed {
+		b.speed += gravity * Delta
 	}
 
 	if b.death == true {
 		b.x -= XSpeed * Delta
+
 		if b.y > 80 {
 			b.y -= b.speed
 		}
-	} else {
-		if b.enable && b.y > 80 {
-			b.y -= b.speed
-		} else {
-			if b.y >= WindowHeight/2+20 {
-				b.speed = 2
-			} else if b.y < WindowHeight/2-20 {
-				b.speed = -2
-			}
 
-			b.y -= b.speed
-		}
+		return
 	}
+
+	b.y -= b.speed
 }
 
-func (b *Bird) Draw(win *pixelgl.Window) error {
-	mat := pixel.IM
-
-	if b.enable && b.speed > 0 {
-		if b.speed > -5 && b.speed < 3 {
-			mat = mat.Rotated(pixel.V(0, 0), b.speed*-15*math.Pi/180)
-		} else {
-			mat = mat.Rotated(pixel.V(0, 0), -45*math.Pi/180)
-		}
-	} else if b.enable == false {
-		mat = mat.Rotated(pixel.V(0, 0), -18*math.Pi/180)
-	}
-
+func (b *Bird) Draw(win *pixelgl.Window) {
+	mat := pixel.IM.Rotated(pixel.V(0, 0), Min(15*math.Pi/180, b.speed*-8*math.Pi/180))
 	mat = mat.Moved(pixel.V(b.x, b.y))
 
-	b.sprite.Draw(win, mat)
+	sprite := b.sprite
+	if b.ghost {
+		sprite = Sprites["bird16"]
+	}
 
-	return nil
+	sprite.Draw(win, mat)
 }
 
 func (b *Bird) Jump() {
@@ -115,4 +102,27 @@ func (b *Bird) Jump() {
 
 func (b *Bird) IncreasePoint() {
 	b.points++
+}
+
+func (b *Bird) Ghost() bool {
+	return b.ghost
+}
+
+func (b *Bird) IsEnableGhost() bool {
+	return b.enableGhost
+}
+
+func (b *Bird) UseGhost() {
+	if b.enableGhost {
+		b.ghost = true
+		b.enableGhost = false
+
+		time.AfterFunc(2*time.Second, func() {
+			b.ghost = false
+		})
+
+		time.AfterFunc(7*time.Second, func() {
+			b.enableGhost = true
+		})
+	}
 }

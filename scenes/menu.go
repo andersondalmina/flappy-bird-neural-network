@@ -35,10 +35,12 @@ func CreateMenuOption(text string, scene Scene) Option {
 func CreateMenuScene() Scene {
 	sp := CreateSinglePlayerScene()
 	sia := CreateIAScene(1)
+	siaHard := CreateIAHardScene(1)
 
 	var o []Option
 	o = append(o, CreateMenuOption("Single Player", sp))
 	o = append(o, CreateMenuOption("AI", sia))
+	o = append(o, CreateMenuOption("AI Hard", siaHard))
 
 	o[0].hover = true
 
@@ -64,7 +66,7 @@ func (s *menu) Run(win *pixelgl.Window) Scene {
 		text = append(text, components.CreateTextLine(o.text, color))
 	}
 
-	mat := pixel.IM.Scaled(win.Bounds().Center(), 5).Moved(pixel.V(0, 50))
+	mat := pixel.IM.Scaled(win.Bounds().Center(), 5).Moved(pixel.V(0, 100))
 	components.WriteText(text, colorMenu, win, mat)
 
 	if win.JustPressed(pixelgl.KeyEnter) {

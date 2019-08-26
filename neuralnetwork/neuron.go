@@ -6,6 +6,7 @@ import "math/rand"
 type Predictor interface {
 	Inputs() int
 	Weights() []float64
+	SetWeights(w []float64)
 	Predict([]float64) float64
 }
 
@@ -15,8 +16,8 @@ type Neuron struct {
 	bias    float64
 }
 
-// NewRandomNeuron creates a new neuron with random weights and bias
-func NewRandomNeuron(inputs int, src rand.Source) *Neuron {
+// NewNeuron creates a new neuron with random weights and bias
+func NewNeuron(inputs int64, src rand.Source) *Neuron {
 	r := rand.New(src)
 	n := &Neuron{
 		weights: make([]float64, inputs),
@@ -35,14 +36,14 @@ func (n *Neuron) Weights() []float64 {
 	return n.weights
 }
 
-// Inputs return how many weights a neuron has
-func (n *Neuron) Inputs() int {
-	return len(n.weights)
-}
-
 // SetWeights set new weights values to neuron
 func (n *Neuron) SetWeights(w []float64) {
 	n.weights = w
+}
+
+// Inputs return how many weights a neuron has
+func (n *Neuron) Inputs() int {
+	return len(n.weights)
 }
 
 // Predict is a function that resolves

@@ -1,4 +1,4 @@
-package neuralnetwork
+package components
 
 // Number of individuals of each population
 const iNum = 100

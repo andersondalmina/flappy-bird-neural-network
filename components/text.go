@@ -13,11 +13,13 @@ import (
 	"golang.org/x/image/font"
 )
 
+// Text component
 type Text struct {
 	txt   string
 	color color.RGBA
 }
 
+// CreateTextLine create a net text component
 func CreateTextLine(txt string, color color.RGBA) Text {
 	return Text{
 		txt:   txt,
@@ -25,6 +27,7 @@ func CreateTextLine(txt string, color color.RGBA) Text {
 	}
 }
 
+// WriteText draw the text on the window
 func WriteText(txt []Text, color color.RGBA, win *pixelgl.Window, mat pixel.Matrix) {
 	face, err := loadTTF("./assets/font.ttf", 14)
 	if err != nil {

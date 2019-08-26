@@ -16,14 +16,18 @@ import (
 const floorWidth = 209
 const floorHeight = 75
 
+var wallTime = 500
+
 type singlePlayer struct {
-	bird   *components.Bird
-	pipes  []*components.Pipe
-	status bool
+	bird      *components.Bird
+	obstacles []components.Obstacle
+	status    bool
 }
 
 // CreateSinglePlayerScene create a scene when a player play alone
 func CreateSinglePlayerScene() Scene {
+	resetWallTime()
+
 	s := singlePlayer{
 		status: true,
 	}
@@ -31,28 +35,33 @@ func CreateSinglePlayerScene() Scene {
 	s.bird = components.NewBird(components.BirdX, components.Sprites["bird10"])
 
 	for i := 0.0; i < 4; i++ {
-		s.pipes = append(s.pipes, components.NewPipe(components.WindowWidth+320*i, (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight))
+		s.obstacles = append(s.obstacles, components.NewPipe(components.WindowWidth+320*i, (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight))
 	}
 
 	return &s
 }
 
 func (s *singlePlayer) Run(win *pixelgl.Window) Scene {
+	wallTime--
+
 	drawBackground(win)
 
 	if win.JustPressed(pixelgl.KeySpace) || win.JustPressed(pixelgl.KeyUp) {
-		s.bird.Enable()
 		s.bird.Jump()
+	}
+
+	if win.JustPressed(pixelgl.KeyLeftControl) {
+		s.bird.UseGhost()
 	}
 
 	s.bird.Update()
 	s.bird.Draw(win)
 
-	for _, pipe := range s.pipes {
-		pipe.Draw(win)
+	for _, o := range s.obstacles {
+		o.Draw(win)
 	}
 
-	s.checkPipes()
+	s.checkObstacles()
 	s.drawPoints(win)
 	drawFloor(win)
 
@@ -63,27 +72,33 @@ func (s *singlePlayer) Run(win *pixelgl.Window) Scene {
 	return s
 }
 
-func (s *singlePlayer) checkPipes() {
-	for i, p := range s.pipes {
-		if p.GetX() <= components.BirdX-50 && p.IsDefeated() == false {
-			p.Defeat()
+func (s *singlePlayer) checkObstacles() {
+	for i, o := range s.obstacles {
+		if o.GetX() <= components.BirdX-50 && o.IsDefeated() == false {
+			o.Defeat()
 			s.bird.IncreasePoint()
 		}
 
-		if s.countFollowingPipes() < 4 {
-			s.pipes = append(s.pipes, components.NewPipe(components.WindowWidth+p.GetX(), components.WindowHeight-components.WindowHeight*0.1-rand.Float64()*250))
+		if s.countFollowingObstacles() < 4 {
+			if wallTime <= 0 {
+				resetWallTime()
+				s.obstacles = append(s.obstacles, components.NewWall(components.WindowWidth+o.GetX()))
+				return
+			}
+
+			s.obstacles = append(s.obstacles, components.NewPipe(components.WindowWidth+o.GetX(), components.WindowHeight-components.WindowHeight*0.1-rand.Float64()*250))
 		}
 
-		if p.GetX() <= -50 {
-			s.pipes = append(s.pipes[:i], s.pipes[i+1:]...)
+		if o.GetX() <= -50 {
+			s.obstacles = append(s.obstacles[:i], s.obstacles[i+1:]...)
 		}
 	}
 }
 
-func (s *singlePlayer) countFollowingPipes() int {
+func (s *singlePlayer) countFollowingObstacles() int {
 	n := 0
-	for _, p := range s.pipes {
-		if p.IsDefeated() == false {
+	for _, o := range s.obstacles {
+		if o.IsDefeated() == false {
 			n++
 		}
 	}
@@ -94,15 +109,17 @@ func (s *singlePlayer) countFollowingPipes() int {
 func (s *singlePlayer) checkCrash() bool {
 	b := s.bird
 
-	if b.GetY() <= 80 {
+	if b.GetY() <= 80 || b.GetY() >= components.WindowHeight {
 		return true
 	}
 
-	for _, p := range s.pipes {
-		if b.GetX() >= p.GetX()-50 && b.GetX() <= p.GetX()+50 {
-			if b.GetY() <= (p.GetY()-55) || b.GetY() >= (p.GetY()+55) {
-				return true
-			}
+	if b.Ghost() {
+		return false
+	}
+
+	for _, o := range s.obstacles {
+		if o.CheckCrash(*b) {
+			return true
 		}
 	}
 
@@ -131,4 +148,8 @@ func (s *singlePlayer) drawPoints(win *pixelgl.Window) {
 
 	mat := pixel.IM.Scaled(win.Bounds().Center(), 5).Moved(pixel.V(-10, components.WindowHeight/3))
 	components.WriteText(text, colorMenu, win, mat)
+}
+
+func resetWallTime() {
+	wallTime = 500
 }

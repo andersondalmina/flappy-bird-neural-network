@@ -61,6 +61,12 @@ func loadSprites() map[string]*pixel.Sprite {
 	}
 	result["bird15"] = pixel.NewSprite(picBird, picBird.Bounds())
 
+	picBird, err = loadPicture("./assets/bird16.png")
+	if err != nil {
+		panic(err)
+	}
+	result["bird16"] = pixel.NewSprite(picBird, picBird.Bounds())
+
 	picUp, err := loadPicture("./assets/pipeup.png")
 	if err != nil {
 		panic(err)
@@ -72,6 +78,12 @@ func loadSprites() map[string]*pixel.Sprite {
 		panic(err)
 	}
 	result["pipeDown"] = pixel.NewSprite(picDown, picDown.Bounds())
+
+	pic, err := loadPicture("./assets/wall.png")
+	if err != nil {
+		panic(err)
+	}
+	result["wall"] = pixel.NewSprite(pic, pic.Bounds())
 
 	return result
 }
