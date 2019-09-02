@@ -16,113 +16,93 @@ const BirdWidth = 54
 
 // BirdX is the inicial position X of the bird
 const BirdX = WindowWidth/2 - WindowWidth*0.2
-const gravity = 20.0
 
-var maxSpeed = gravity / 4
+const ghostCountdown = 1300
+
+var gravity = 20.0
+var maxSpeed = gravity * 30
 
 // Bird component
 type Bird struct {
-	x           float64
-	y           float64
-	speed       float64
-	sprite      *pixel.Sprite
-	points      int64
-	death       bool
-	enableGhost bool
-	ghost       bool
+	X              float64
+	Y              float64
+	speed          float64
+	sprite         *pixel.Sprite
+	Points         int64
+	Dead           bool
+	Ghost          bool
+	GhostCountdown int
 }
 
 // NewBird creates a new bird component
 func NewBird(x float64, sprite *pixel.Sprite) *Bird {
 	return &Bird{
-		x:           x,
-		y:           WindowHeight / 2,
-		speed:       2,
-		sprite:      sprite,
-		points:      0,
-		death:       false,
-		enableGhost: true,
-		ghost:       false,
+		X:              x,
+		Y:              WindowHeight / 2,
+		speed:          0,
+		sprite:         sprite,
+		Points:         0,
+		Dead:           false,
+		Ghost:          false,
+		GhostCountdown: ghostCountdown,
 	}
 }
 
-func (b *Bird) GetX() float64 {
-	return b.x
+// Kill set bird as dead
+func (b *Bird) Kill() {
+	b.Dead = true
 }
 
-func (b *Bird) GetY() float64 {
-	return b.y
-}
-
-func (b *Bird) GetPoints() int64 {
-	return b.points
-}
-
-func (b *Bird) IsDeath() bool {
-	return b.death
-}
-
-func (b *Bird) Death() {
-	b.death = true
-}
-
+// Update run all operations on bird
 func (b *Bird) Update() {
+	if b.GhostCountdown > 0 {
+		b.GhostCountdown--
+	}
+
 	if b.speed < maxSpeed {
-		b.speed += gravity * Delta
+		b.speed += gravity
 	}
 
-	if b.death == true {
-		b.x -= XSpeed * Delta
-
-		if b.y > 80 {
-			b.y -= b.speed
-		}
-
-		return
+	if b.Dead {
+		b.X -= GameXSpeed * Delta
 	}
 
-	b.y -= b.speed
+	if b.Y > 80 || b.speed < 0 {
+		b.Y -= b.speed * Delta
+	}
 }
 
+// Draw the bird on window
 func (b *Bird) Draw(win *pixelgl.Window) {
-	mat := pixel.IM.Rotated(pixel.V(0, 0), Min(15*math.Pi/180, b.speed*-8*math.Pi/180))
-	mat = mat.Moved(pixel.V(b.x, b.y))
+	mat := pixel.IM.Rotated(pixel.V(0, 0), Min(15*math.Pi/180, -b.speed/10*math.Pi/180))
+	mat = mat.Moved(pixel.V(b.X, b.Y))
 
 	sprite := b.sprite
-	if b.ghost {
+	if b.Ghost {
 		sprite = Sprites["bird16"]
 	}
 
 	sprite.Draw(win, mat)
 }
 
+// Jump change speed of bird to jump
 func (b *Bird) Jump() {
-	b.speed = -gravity * Delta * 23
+	b.speed = -gravity * 20
 }
 
+// IncreasePoint run all inscreases
 func (b *Bird) IncreasePoint() {
-	b.points++
+	b.Points++
 }
 
-func (b *Bird) Ghost() bool {
-	return b.ghost
-}
-
-func (b *Bird) IsEnableGhost() bool {
-	return b.enableGhost
-}
-
+// UseGhost enable ghost power on bird
 func (b *Bird) UseGhost() {
-	if b.enableGhost {
-		b.ghost = true
-		b.enableGhost = false
+	if b.GhostCountdown == 0 {
+		b.GhostCountdown = ghostCountdown
+		b.Ghost = true
 
 		time.AfterFunc(2*time.Second, func() {
-			b.ghost = false
-		})
-
-		time.AfterFunc(7*time.Second, func() {
-			b.enableGhost = true
+			b.Ghost = false
 		})
 	}
 }

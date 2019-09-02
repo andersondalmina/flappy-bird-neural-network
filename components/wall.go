@@ -23,6 +23,11 @@ func NewWall(x float64) *Wall {
 	}
 }
 
+// GetWidth return the wall width
+func (w *Wall) GetWidth() float64 {
+	return WallWidth
+}
+
 // GetType return the type of obstacle
 func (w *Wall) GetType() float64 {
 	return 2
@@ -56,7 +61,7 @@ func (w *Wall) Draw(win *pixelgl.Window) {
 		Sprites["wall"].Draw(win, pixel.IM.Moved(pixel.V(w.X, float64(i)*160)))
 	}
 
-	w.X -= XSpeed * Delta
+	w.X -= GameXSpeed * Delta
 }
 
 // Update do nothing
@@ -64,9 +69,9 @@ func (w *Wall) Update() {
 
 }
 
-// CheckCrash check if a bird crash on the wall
-func (w *Wall) CheckCrash(b Bird) bool {
-	if b.GetX() >= w.X-WallWidth/2 && b.GetX() <= w.X+WallWidth/2 {
+// CheckCrash check if a position crash on the wall
+func (w *Wall) CheckCrash(x, y float64) bool {
+	if x >= w.X-WallWidth/2 && x <= w.X+WallWidth/2 {
 		return true
 	}
 

@@ -22,8 +22,9 @@ type Obstacle interface {
 	Update()
 	IsDefeated() bool
 	Defeat()
-	CheckCrash(b Bird) bool
+	CheckCrash(x, y float64) bool
 	GetType() float64
+	GetWidth() float64
 }
 
 // Pipe type of obstacle
@@ -48,6 +49,11 @@ func NewPipe(x float64, y float64) *Pipe {
 		spriteDown: Sprites["pipeDown"],
 		direction:  rand.Intn(1),
 	}
+}
+
+// GetWidth return the pipe width
+func (p *Pipe) GetWidth() float64 {
+	return PipeWidth
 }
 
 // GetType return the type of obstacle
@@ -79,38 +85,38 @@ func (p *Pipe) Defeat() {
 func (p *Pipe) Draw(win *pixelgl.Window) {
 	// Draw down part of pipe
 	p.spriteUp.Draw(win, pixel.IM.Moved(pixel.V(p.x, p.y-100)))
-	for i := p.y - 100 - PipeHeight; i > 0; i -= PipeHeight {
+	for i := p.y - 100 - PipeHeight; i > 0; i -= PipeHeight - 1 {
 		p.spriteDown.Draw(win, pixel.IM.Moved(pixel.V(p.x, i)))
 	}
 
 	// Draw up part of pipe
 	p.spriteUp.Draw(win, pixel.IM.Rotated(pixel.V(0, 0), math.Pi).Moved(pixel.V(p.x, p.y+100)))
-	for i := p.y + 100 + PipeHeight; i < WindowHeight+PipeHeight; i += PipeHeight {
+	for i := p.y + 100 + PipeHeight; i < WindowHeight+PipeHeight; i += PipeHeight - 1 {
 		p.spriteDown.Draw(win, pixel.IM.Rotated(pixel.V(0, 0), math.Pi).Moved(pixel.V(p.x, i)))
 	}
 
-	p.x -= XSpeed * Delta
+	p.x -= GameXSpeed * Delta
 }
 
 // Update the pipe
 func (p *Pipe) Update() {
 	if p.direction == 1 {
-		p.y++
+		p.y += 0.5
 	} else {
-		p.y--
+		p.y -= 0.5
 	}
 
-	if p.y > WindowHeight-150 {
+	if p.y > WindowHeight-200 {
 		p.direction = 0
 	} else if p.y < 200 {
 		p.direction = 1
 	}
 }
 
-// CheckCrash check if a bird crash on the pipe
-func (p *Pipe) CheckCrash(b Bird) bool {
-	if b.GetX() >= p.GetX()-50 && b.GetX() <= p.GetX()+50 {
-		if b.GetY() <= (p.GetY()-55) || b.GetY() >= (p.GetY()+55) {
+// CheckCrash check if a position crash on pipe
+func (p *Pipe) CheckCrash(x, y float64) bool {
+	if x >= p.GetX()-PipeWidth/2 && x <= p.GetX()+PipeWidth/2 {
+		if y <= (p.GetY()-50) || y >= (p.GetY()+50) {
 			return true
 		}
 	}

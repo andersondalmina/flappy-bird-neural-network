@@ -14,8 +14,8 @@ const WindowHeight = 720
 // Delta is to control FPS
 var Delta float64
 
-// XSpeed is the horizontal speed
-var XSpeed = 180.0
+// GameXSpeed is the horizontal speed
+var GameXSpeed = 180.0
 
 // CreateWindow creates a window
 func CreateWindow(t string) (*pixelgl.Window, error) {

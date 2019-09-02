@@ -3,6 +3,7 @@ package scenes
 import (
 	"math/rand"
 	"strconv"
+	"time"
 
 	"github.com/andersondalmina/flappy-bird-neural-network/components"
 	"github.com/andersondalmina/flappy-bird-neural-network/neuralnetwork"
@@ -11,6 +12,9 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+// IndNumber number of individuals of a population
+const IndNumber = 100
+
 var bestWeights = make([][][]float64, 10)
 var weights = make([][][]float64, 10)
 var bestPoints int64
@@ -18,21 +22,21 @@ var bestPoints int64
 type ia struct {
 	pop       *components.Population
 	obstacles []components.Obstacle
-	status    bool
 }
 
 // CreateIAScene create a scene when a machine plays
 func CreateIAScene(gn int64) Scene {
-	s := ia{
-		status: true,
-	}
+	rand.Seed(time.Now().UTC().UnixNano())
 
-	s.pop = components.CreateNewPopulation(gn)
+	s := ia{
+		pop:       components.CreateNewPopulation(gn),
+		obstacles: make([]components.Obstacle, 4),
+	}
 
 	var n int64
 	var t string
 	var ind *components.Individual
-	for i := 0; i < 100; i++ {
+	for i := 0; i < IndNumber; i++ {
 		n = rand.Int63n(4) + 1
 		t = strconv.FormatInt(n, 10)
 		neural := neuralnetwork.NewNeuralNetwork(neuralnetwork.Config{
@@ -60,8 +64,8 @@ func CreateIAScene(gn int64) Scene {
 		s.pop.AddIndividual(ind)
 	}
 
-	for i := 0.0; i < 4; i++ {
-		s.obstacles = append(s.obstacles, components.NewPipe(components.WindowWidth+320*i, (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight))
+	for i := 0; i < 4; i++ {
+		s.obstacles[i] = components.NewPipe(components.WindowWidth+320*float64(i), (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight)
 	}
 
 	return &s
@@ -70,35 +74,43 @@ func CreateIAScene(gn int64) Scene {
 func (s *ia) Run(win *pixelgl.Window) Scene {
 	drawBackground(win)
 
+	pop := s.pop
+
 	if win.JustPressed(pixelgl.KeyEnter) {
-		for _, b := range s.pop.GetIndividuals() {
-			b.Bird().Death()
+		for _, b := range pop.GetIndividuals() {
+			b.Bird().Kill()
 		}
 	}
 
 	var bInputs []float64
 	var np components.Obstacle
-	for _, b := range s.pop.GetIndividuals() {
-		go b.Bird().Update()
-		b.Bird().Draw(win)
+	for i, ind := range pop.GetIndividuals() {
+		bird := ind.Bird()
+		go bird.Update()
+		bird.Draw(win)
 
-		if b.Bird().IsDeath() == true {
+		if bird.Dead == true {
+			if bird.X < 0 && len(pop.GetIndividuals()) > 1 && i > len(pop.GetIndividuals()) {
+				pop.RemoveIndividual(i)
+			}
+
 			continue
 		}
 
 		bInputs = make([]float64, 2)
-		np = s.getBirdNextPipe(b.Bird())
-		bInputs[0] = np.GetX() - b.Bird().GetX()
-		bInputs[1] = np.GetY() - components.PipeHeight - b.Bird().GetY()
-		b.SetInputs(bInputs)
+		np = s.getBirdNextPipe(bird)
+		bInputs[0] = np.GetX() - bird.X
+		bInputs[1] = np.GetY() - components.PipeHeight - bird.Y
 
-		if Max(b.Neural().Predict(bInputs)[0], 0) > 0 {
-			b.Bird().Jump()
+		ind.SetInputs(bInputs)
+
+		if Max(ind.Neural().Predict(bInputs)[0], 0) > 0 {
+			bird.Jump()
 		}
 
-		b.Bird().IncreasePoint()
-		if s.checkCrash(b.Bird()) {
-			b.Bird().Death()
+		bird.IncreasePoint()
+		if s.checkCrash(bird) {
+			bird.Kill()
 		}
 	}
 
@@ -113,14 +125,14 @@ func (s *ia) Run(win *pixelgl.Window) Scene {
 	if s.checkBirdsAlive() == false {
 		best := s.pop.GetIndividuals()[0]
 		for _, b := range s.pop.GetIndividuals() {
-			if b.Bird().GetPoints() > best.Bird().GetPoints() {
+			if b.Bird().Points > best.Bird().Points {
 				best = b
 			}
 		}
 
-		if best.Bird().GetPoints() > bestPoints {
+		if best.Bird().Points > bestPoints {
 			bestWeights = best.Neural().Weights()
-			bestPoints = best.Bird().GetPoints()
+			bestPoints = best.Bird().Points
 		}
 
 		return CreateIAScene(s.pop.Generation() + 1)
@@ -132,12 +144,12 @@ func (s *ia) Run(win *pixelgl.Window) Scene {
 func (s *ia) checkPipes() {
 	for _, b := range s.pop.GetIndividuals() {
 		for i, p := range s.obstacles {
-			if p.GetX() <= b.Bird().GetX()-50 && p.IsDefeated() == false {
+			if p.GetX() <= b.Bird().X-50 && p.IsDefeated() == false {
 				p.Defeat()
 			}
 
 			if s.countFollowingPipes() < 4 {
-				s.obstacles = append(s.obstacles, components.NewPipe(components.WindowWidth+p.GetX(), components.WindowHeight-components.WindowHeight*0.1-rand.Float64()*250))
+				s.obstacles = append(s.obstacles, components.NewPipe(components.WindowWidth+p.GetX(), (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight))
 			}
 
 			if p.GetX() <= -50 {
@@ -159,12 +171,12 @@ func (s *ia) countFollowingPipes() int {
 }
 
 func (s *ia) checkCrash(b *components.Bird) bool {
-	if b.GetY() <= 80 || b.GetY() >= components.WindowHeight {
+	if b.Y <= 80 || b.Y >= components.WindowHeight {
 		return true
 	}
 
 	for _, o := range s.obstacles {
-		if o.CheckCrash(*b) {
+		if o.CheckCrash(b.X, b.Y) {
 			return true
 		}
 	}
@@ -174,7 +186,7 @@ func (s *ia) checkCrash(b *components.Bird) bool {
 
 func (s *ia) getBirdNextPipe(b *components.Bird) components.Obstacle {
 	for _, o := range s.obstacles {
-		if o.GetX()+components.PipeWidth/2 > b.GetX() {
+		if o.GetX()+components.PipeWidth/2 > b.X {
 			return o
 		}
 	}
@@ -184,7 +196,7 @@ func (s *ia) getBirdNextPipe(b *components.Bird) components.Obstacle {
 
 func (s *ia) checkBirdsAlive() bool {
 	for _, b := range s.pop.GetIndividuals() {
-		if b.Bird().IsDeath() == false {
+		if b.Bird().Dead == false {
 			return true
 		}
 	}
@@ -201,6 +213,17 @@ func (s *ia) drawInterface(win *pixelgl.Window) {
 
 	mat := pixel.IM.Scaled(win.Bounds().Center(), 5).Moved(pixel.V(-10, components.WindowHeight/3))
 	components.WriteText(text, colorMenu, win, mat)
+}
+
+// CheckIndividualsDead check if all individuals are dead
+func CheckIndividualsDead(pop []*components.Individual) bool {
+	for _, b := range pop {
+		if b.Bird().Dead == false {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Max returns the larger of x or y.

@@ -35,6 +35,5 @@ func (p *Population) AddIndividual(i *Individual) {
 
 // RemoveIndividual remove an individual from the population
 func (p *Population) RemoveIndividual(i int) {
-	p.individuals[i] = p.individuals[len(p.individuals)-1]
-	p.individuals = p.individuals[:len(p.individuals)-1]
+	p.individuals = append(p.individuals[:i], p.individuals[i+1:]...)
 }

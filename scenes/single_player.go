@@ -16,7 +16,7 @@ import (
 const floorWidth = 209
 const floorHeight = 75
 
-var wallTime = 500
+var wallTime int
 
 type singlePlayer struct {
 	bird      *components.Bird
@@ -54,19 +54,19 @@ func (s *singlePlayer) Run(win *pixelgl.Window) Scene {
 		s.bird.UseGhost()
 	}
 
-	s.bird.Update()
+	go s.bird.Update()
 	s.bird.Draw(win)
 
 	for _, o := range s.obstacles {
 		o.Draw(win)
 	}
 
-	s.checkObstacles()
+	go s.checkObstacles()
 	s.drawPoints(win)
 	drawFloor(win)
 
 	if s.checkCrash() {
-		return CreateGameOverScene(s.bird.GetPoints())
+		return CreateGameOverScene(s.bird.Points)
 	}
 
 	return s
@@ -89,7 +89,7 @@ func (s *singlePlayer) checkObstacles() {
 			s.obstacles = append(s.obstacles, components.NewPipe(components.WindowWidth+o.GetX(), components.WindowHeight-components.WindowHeight*0.1-rand.Float64()*250))
 		}
 
-		if o.GetX() <= -50 {
+		if o.GetX() <= -o.GetWidth()/2 {
 			s.obstacles = append(s.obstacles[:i], s.obstacles[i+1:]...)
 		}
 	}
@@ -109,16 +109,16 @@ func (s *singlePlayer) countFollowingObstacles() int {
 func (s *singlePlayer) checkCrash() bool {
 	b := s.bird
 
-	if b.GetY() <= 80 || b.GetY() >= components.WindowHeight {
+	if b.Y <= 80 || b.Y >= components.WindowHeight {
 		return true
 	}
 
-	if b.Ghost() {
+	if b.Ghost {
 		return false
 	}
 
 	for _, o := range s.obstacles {
-		if o.CheckCrash(*b) {
+		if o.CheckCrash(b.X, b.Y) {
 			return true
 		}
 	}
@@ -140,7 +140,7 @@ func (s *singlePlayer) gameOver(win *pixelgl.Window) {
 }
 
 func (s *singlePlayer) drawPoints(win *pixelgl.Window) {
-	t := strconv.FormatInt(s.bird.GetPoints(), 10)
+	t := strconv.FormatInt(s.bird.Points, 10)
 	p := components.CreateTextLine(t, colornames.White)
 
 	var text []components.Text
@@ -151,5 +151,5 @@ func (s *singlePlayer) drawPoints(win *pixelgl.Window) {
 }
 
 func resetWallTime() {
-	wallTime = 500
+	wallTime = 1500
 }
