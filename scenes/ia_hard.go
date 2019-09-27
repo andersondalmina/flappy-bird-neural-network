@@ -63,7 +63,7 @@ func (s *iaHard) Load() Scene {
 			ind.Neural().UpdateWeights(data)
 
 		} else if s.generation > 1 {
-			ind.Neural().UpdateWeights(ind.Neural().Weights())
+			ind.Neural().UpdateWeights(bestWeights)
 		}
 
 		s.pop.AddIndividual(ind)
