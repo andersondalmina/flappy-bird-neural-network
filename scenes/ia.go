@@ -13,25 +13,33 @@ import (
 )
 
 // IndNumber number of individuals of a population
-const IndNumber = 100
+const IndNumber = 200
 
 var bestWeights = make([][][]float64, 10)
 var weights = make([][][]float64, 10)
 var bestPoints int64
+var datafile string
 
 type ia struct {
-	pop       *components.Population
-	obstacles []components.Obstacle
+	generation int64
+	pop        *components.Population
+	obstacles  []components.Obstacle
 }
 
 // CreateIAScene create a scene when a machine plays
 func CreateIAScene(gn int64) Scene {
+	return &ia{
+		generation: gn,
+	}
+}
+
+func (s *ia) Load() Scene {
+	datafile = "data/neuraldump_ia.json"
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	s := ia{
-		pop:       components.CreateNewPopulation(gn),
-		obstacles: make([]components.Obstacle, 4),
-	}
+	s.pop = components.CreateNewPopulation(s.generation)
+	s.obstacles = make([]components.Obstacle, 4)
 
 	var n int64
 	var t string
@@ -41,24 +49,12 @@ func CreateIAScene(gn int64) Scene {
 		t = strconv.FormatInt(n, 10)
 		neural := neuralnetwork.NewNeuralNetwork(neuralnetwork.Config{
 			Inputs: 2,
-			Layers: []int64{3, 1},
+			Layers: []int64{10, 20, 1},
 		})
 		ind = components.NewIndividual(components.NewBird(components.BirdX-rand.Float64()*200, components.Sprites["bird1"+t]), neural)
 
-		if gn > 1 {
-			weights = ind.Neural().Weights()
-			for z := range bestWeights {
-				for zz := range bestWeights[z] {
-					for zzz := range bestWeights[z][zz] {
-						weights[z][zz][zzz] = bestWeights[z][zz][zzz]
-						if rand.Intn(4) == 0 {
-							weights[z][zz][zzz] += (rand.Float64()*2 - 1) * 100
-						}
-					}
-				}
-			}
-
-			ind.Neural().SetWeights(weights)
+		if s.generation > 1 {
+			ind.Neural().UpdateWeights(bestWeights)
 		}
 
 		s.pop.AddIndividual(ind)
@@ -68,7 +64,7 @@ func CreateIAScene(gn int64) Scene {
 		s.obstacles[i] = components.NewPipe(components.WindowWidth+320*float64(i), (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight)
 	}
 
-	return &s
+	return s
 }
 
 func (s *ia) Run(win *pixelgl.Window) Scene {
@@ -104,7 +100,8 @@ func (s *ia) Run(win *pixelgl.Window) Scene {
 
 		ind.SetInputs(bInputs)
 
-		if Max(ind.Neural().Predict(bInputs)[0], 0) > 0 {
+		result := ind.Neural().Predict(bInputs)
+		if result[0] > 0 {
 			bird.Jump()
 		}
 
@@ -135,7 +132,7 @@ func (s *ia) Run(win *pixelgl.Window) Scene {
 			bestPoints = best.Bird().Points
 		}
 
-		return CreateIAScene(s.pop.Generation() + 1)
+		return CreateIAScene(s.pop.Generation() + 1).Load()
 	}
 
 	return s
@@ -224,13 +221,4 @@ func CheckIndividualsDead(pop []*components.Individual) bool {
 	}
 
 	return true
-}
-
-// Max returns the larger of x or y.
-func Max(x, y float64) float64 {
-	if x < y {
-		return y
-	}
-
-	return x
 }

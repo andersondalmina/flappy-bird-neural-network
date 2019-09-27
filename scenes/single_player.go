@@ -32,13 +32,17 @@ func CreateSinglePlayerScene() Scene {
 		status: true,
 	}
 
+	return &s
+}
+
+func (s *singlePlayer) Load() Scene {
 	s.bird = components.NewBird(components.BirdX, components.Sprites["bird10"])
 
 	for i := 0.0; i < 4; i++ {
 		s.obstacles = append(s.obstacles, components.NewPipe(components.WindowWidth+320*i, (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight))
 	}
 
-	return &s
+	return s
 }
 
 func (s *singlePlayer) Run(win *pixelgl.Window) Scene {
@@ -66,7 +70,7 @@ func (s *singlePlayer) Run(win *pixelgl.Window) Scene {
 	drawFloor(win)
 
 	if s.checkCrash() {
-		return CreateGameOverScene(s.bird.Points)
+		return CreateGameOverScene(s.bird.Points).Load()
 	}
 
 	return s

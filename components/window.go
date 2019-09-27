@@ -28,15 +28,6 @@ func CreateWindow(t string) (*pixelgl.Window, error) {
 	return pixelgl.NewWindow(wConfig)
 }
 
-// Max returns the larger of x or y.
-func Max(x, y float64) float64 {
-	if x < y {
-		return y
-	}
-
-	return x
-}
-
 // Min returns the larger of x or y.
 func Min(x, y float64) float64 {
 	if x > y {

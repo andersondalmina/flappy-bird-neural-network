@@ -27,8 +27,8 @@ func (l *Layer) Neurons() []*Neuron {
 	return l.neurons
 }
 
-// Run predicts all neurons
-func (l *Layer) Run(inputs []float64) []float64 {
+// Predict all neurons of the layer
+func (l *Layer) Predict(inputs []float64) []float64 {
 	r := make([]float64, len(l.neurons))
 	for i, n := range l.neurons {
 		r[i] = n.Predict(inputs)

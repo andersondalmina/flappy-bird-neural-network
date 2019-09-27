@@ -8,6 +8,7 @@ import (
 
 // Scene is a interface for scenes
 type Scene interface {
+	Load() Scene
 	Run(win *pixelgl.Window) Scene
 }
 

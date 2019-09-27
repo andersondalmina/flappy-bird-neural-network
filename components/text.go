@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"image/color"
 	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
@@ -29,7 +31,14 @@ func CreateTextLine(txt string, color color.RGBA) Text {
 
 // WriteText draw the text on the window
 func WriteText(txt []Text, color color.RGBA, win *pixelgl.Window, mat pixel.Matrix) {
-	face, err := loadTTF("./assets/font.ttf", 14)
+	dir, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dir = filepath.Dir(dir)
+
+	face, err := loadTTF(dir+"/assets/font.ttf", 14)
 	if err != nil {
 		panic(err)
 	}

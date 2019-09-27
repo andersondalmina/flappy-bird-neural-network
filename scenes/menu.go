@@ -49,6 +49,10 @@ func CreateMenuScene() Scene {
 	}
 }
 
+func (s *menu) Load() Scene {
+	return s
+}
+
 func (s *menu) Run(win *pixelgl.Window) Scene {
 	win.Clear(colornames.Skyblue)
 
@@ -70,7 +74,7 @@ func (s *menu) Run(win *pixelgl.Window) Scene {
 	components.WriteText(text, colorMenu, win, mat)
 
 	if win.JustPressed(pixelgl.KeyEnter) {
-		return s.options[s.getOptionHover()].goTo
+		return s.options[s.getOptionHover()].goTo.Load()
 	}
 
 	if win.JustPressed(pixelgl.KeyDown) {

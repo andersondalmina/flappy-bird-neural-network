@@ -2,33 +2,49 @@ package scenes
 
 import (
 	"math/rand"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/andersondalmina/flappy-bird-neural-network/components"
 	"github.com/andersondalmina/flappy-bird-neural-network/neuralnetwork"
+	"github.com/andersondalmina/flappy-bird-neural-network/persist"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
 )
 
-const datafile = "neuraldump_iahard.json"
-
 type iaHard struct {
-	pop       *components.Population
-	obstacles []components.Obstacle
+	generation int64
+	pop        *components.Population
+	obstacles  []components.Obstacle
 }
 
 // CreateIAHardScene create a scene when a machine plays
 func CreateIAHardScene(gn int64) Scene {
+	return &iaHard{
+		generation: gn,
+	}
+}
+
+func (s *iaHard) Load() Scene {
+	datafile = "neuraldump_iahard.json"
+
+	var data [][][]float64
+	var err error
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	resetWallTime()
 
-	s := iaHard{
-		pop:       components.CreateNewPopulation(gn),
-		obstacles: make([]components.Obstacle, 4),
+	s.pop = components.CreateNewPopulation(s.generation)
+	s.obstacles = make([]components.Obstacle, 4)
+
+	err = persist.CheckFileExists(datafile)
+	if err == nil {
+		err = persist.Load(datafile, &data)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	var n int64
@@ -38,27 +54,28 @@ func CreateIAHardScene(gn int64) Scene {
 		n = rand.Int63n(4) + 1
 		t = strconv.FormatInt(n, 10)
 		neural := neuralnetwork.NewNeuralNetwork(neuralnetwork.Config{
-			Inputs: 4,
-			Layers: []int64{4, 20, 2},
+			Inputs: 3,
+			Layers: []int64{10, 20, 1},
 		})
 		ind = components.NewIndividual(components.NewBird(components.BirdX-rand.Float64()*200, components.Sprites["bird1"+t]), neural)
 
-		_, err := os.Stat(datafile)
-		if gn == 1 && err == nil {
-			ind.Neural().ImportDump(datafile)
+		if s.generation == 1 {
+			ind.Neural().UpdateWeights(data)
 
-		} else if gn > 1 {
-			ind.Neural().SetWeights(neuralnetwork.AjustWeight(ind.Neural().Weights()))
+		} else if s.generation > 1 {
+			ind.Neural().UpdateWeights(ind.Neural().Weights())
 		}
 
 		s.pop.AddIndividual(ind)
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 3; i++ {
 		s.obstacles[i] = components.NewPipe(components.WindowWidth+320*float64(i), (components.WindowHeight-components.PipeHeight*2)-rand.Float64()*10*components.PipeHeight)
 	}
 
-	return &s
+	s.obstacles[3] = components.NewWall(components.WindowWidth + 320*3)
+
+	return s
 }
 
 func (s *iaHard) Run(win *pixelgl.Window) Scene {
@@ -90,12 +107,11 @@ func (s *iaHard) Run(win *pixelgl.Window) Scene {
 			continue
 		}
 
-		bInputs = make([]float64, 4)
+		bInputs = make([]float64, 3)
 		np = s.getBirdNextObstacle(bird)
 		bInputs[0] = np.GetX() - bird.X
 		bInputs[1] = np.GetY() - components.PipeHeight - bird.Y
 		bInputs[2] = np.GetType()
-		bInputs[3] = float64(bird.GhostCountdown)
 
 		ind.SetInputs(bInputs)
 
@@ -103,7 +119,9 @@ func (s *iaHard) Run(win *pixelgl.Window) Scene {
 
 		if result[0] > 0 {
 			bird.Jump()
-		} else if result[1] > 0 {
+		}
+
+		if result[1] > 0 {
 			bird.UseGhost()
 		}
 
@@ -130,17 +148,15 @@ func (s *iaHard) Run(win *pixelgl.Window) Scene {
 			}
 		}
 
-		// if best.Bird().Points > bestPoints {
 		bestWeights = best.Neural().Weights()
 		bestPoints = best.Bird().Points
-		// }
 
 		err := best.Neural().Dump(datafile)
 		if err != nil {
 			panic(err)
 		}
 
-		return CreateIAHardScene(s.pop.Generation() + 1)
+		return CreateIAHardScene(s.pop.Generation() + 1).Load()
 	}
 
 	return s

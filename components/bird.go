@@ -44,7 +44,7 @@ func NewBird(x float64, sprite *pixel.Sprite) *Bird {
 		Points:         0,
 		Dead:           false,
 		Ghost:          false,
-		GhostCountdown: ghostCountdown,
+		GhostCountdown: 0,
 	}
 }
 
@@ -101,7 +101,7 @@ func (b *Bird) UseGhost() {
 		b.GhostCountdown = ghostCountdown
 		b.Ghost = true
 
-		time.AfterFunc(2*time.Second, func() {
+		time.AfterFunc(3*time.Second, func() {
 			b.Ghost = false
 		})
 	}

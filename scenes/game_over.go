@@ -22,6 +22,10 @@ func CreateGameOverScene(p int64) Scene {
 	return &s
 }
 
+func (s *gameOverScene) Load() Scene {
+	return s
+}
+
 func (s *gameOverScene) Run(win *pixelgl.Window) Scene {
 	win.Clear(colornames.Skyblue)
 
@@ -40,7 +44,7 @@ func (s *gameOverScene) Run(win *pixelgl.Window) Scene {
 	components.WriteText(text, colorMenu, win, mat)
 
 	if win.JustPressed(pixelgl.KeyEnter) {
-		return CreateMenuScene()
+		return CreateMenuScene().Load()
 	}
 
 	return s
