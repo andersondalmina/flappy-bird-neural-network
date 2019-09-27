@@ -55,11 +55,11 @@ func (s *iaHard) Load() Scene {
 		t = strconv.FormatInt(n, 10)
 		neural := neuralnetwork.NewNeuralNetwork(neuralnetwork.Config{
 			Inputs: 3,
-			Layers: []int64{10, 20, 1},
+			Layers: []int64{10, 20, 2},
 		})
 		ind = components.NewIndividual(components.NewBird(components.BirdX-rand.Float64()*200, components.Sprites["bird1"+t]), neural)
 
-		if s.generation == 1 {
+		if s.generation == 1 && len(data) > 0 {
 			ind.Neural().UpdateWeights(data)
 
 		} else if s.generation > 1 {
