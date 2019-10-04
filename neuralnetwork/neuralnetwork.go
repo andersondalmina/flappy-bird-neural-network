@@ -11,6 +11,10 @@ import (
 type NeuralNetwork struct {
 	layers []*Layer
 }
+type dataFile struct {
+	Generation int64
+	Data       [][][]float64
+}
 
 // Config is the info about neural network
 type Config struct {
@@ -73,26 +77,18 @@ func (n *NeuralNetwork) UpdateWeights(w [][][]float64) {
 }
 
 // Dump neural network weights to a file
-func (n *NeuralNetwork) Dump(filepath string) error {
-	err := persist.Save(filepath, n.Weights())
+func (n *NeuralNetwork) Dump(generation int64, filepath string) error {
+
+	dumpData := dataFile{
+		Generation: generation,
+		Data:       n.Weights(),
+	}
+
+	err := persist.Save(filepath, dumpData)
 
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	return nil
-}
-
-// ImportDump import the neural weights
-func (n *NeuralNetwork) ImportDump(filepath string) error {
-	var data [][][]float64
-	err := persist.Load(filepath, &data)
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	n.UpdateWeights(data)
 
 	return nil
 }
