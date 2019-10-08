@@ -11,7 +11,9 @@ import (
 type NeuralNetwork struct {
 	layers []*Layer
 }
-type dataFile struct {
+
+// DataFile is the info about generations weights that will be dumped into a file
+type DataFile struct {
 	Generation int64
 	Data       [][][]float64
 }
@@ -79,7 +81,7 @@ func (n *NeuralNetwork) UpdateWeights(w [][][]float64) {
 // Dump neural network weights to a file
 func (n *NeuralNetwork) Dump(generation int64, filepath string) error {
 
-	dumpData := dataFile{
+	dumpData := DataFile{
 		Generation: generation,
 		Data:       n.Weights(),
 	}

@@ -19,11 +19,6 @@ type iaHard struct {
 	obstacles  []components.Obstacle
 }
 
-type dataFile struct {
-	Generation int64
-	Data       [][][]float64
-}
-
 // CreateIAHardScene create a scene when a machine plays
 func CreateIAHardScene(gn int64) Scene {
 	return &iaHard{
@@ -34,7 +29,7 @@ func CreateIAHardScene(gn int64) Scene {
 func (s *iaHard) Load() Scene {
 	datafile = "neuraldump_iahard.json"
 
-	var loadData dataFile
+	var loadData neuralnetwork.DataFile
 	var err error
 	var firstRun bool
 	firstRun = false
@@ -164,7 +159,7 @@ func (s *iaHard) Run(win *pixelgl.Window) Scene {
 		bestWeights = best.Neural().Weights()
 		bestPoints = best.Bird().Points
 
-		err := best.Neural().Dump(s.generation+1, datafile)
+		err := best.Neural().Dump(s.generation, datafile)
 		if err != nil {
 			panic(err)
 		}
