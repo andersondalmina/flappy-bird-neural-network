@@ -29,23 +29,31 @@ func CreateIAHardScene(gn int64) Scene {
 func (s *iaHard) Load() Scene {
 	datafile = "neuraldump_iahard.json"
 
-	var data [][][]float64
+	var loadData neuralnetwork.DataFile
 	var err error
+	var firstRun bool
+	firstRun = false
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	resetWallTime()
 
-	s.pop = components.CreateNewPopulation(s.generation)
 	s.obstacles = make([]components.Obstacle, 4)
 
 	err = persist.CheckFileExists(datafile)
 	if err == nil {
-		err = persist.Load(datafile, &data)
+		err = persist.Load(datafile, &loadData)
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	if s.generation == 1 && loadData.Generation > 0 {
+		s.generation = loadData.Generation
+		firstRun = true
+	}
+
+	s.pop = components.CreateNewPopulation(s.generation)
 
 	var n int64
 	var t string
@@ -59,8 +67,8 @@ func (s *iaHard) Load() Scene {
 		})
 		ind = components.NewIndividual(components.NewBird(components.BirdX-rand.Float64()*200, components.Sprites["bird1"+t]), neural)
 
-		if s.generation == 1 && len(data) > 0 {
-			ind.Neural().UpdateWeights(data)
+		if firstRun {
+			ind.Neural().UpdateWeights(loadData.Data)
 
 		} else if s.generation > 1 {
 			ind.Neural().UpdateWeights(bestWeights)
@@ -151,7 +159,7 @@ func (s *iaHard) Run(win *pixelgl.Window) Scene {
 		bestWeights = best.Neural().Weights()
 		bestPoints = best.Bird().Points
 
-		err := best.Neural().Dump(datafile)
+		err := best.Neural().Dump(s.generation, datafile)
 		if err != nil {
 			panic(err)
 		}
